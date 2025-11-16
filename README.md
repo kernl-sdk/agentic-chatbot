@@ -1,23 +1,53 @@
-# kernl :: AI Chatbot
+# kernl :: Agentic chatbot
 
-A simple, readable foundation for any AI chatbot, using the AI SDK's `AI elements` component library.
+A minimal Next.js chat app wired to a backend agent, built with the Vercel AI SDK and its **AI Elements** component library.
+
+## Tech stack
+
+- **Framework**: Next.js 16 (App Router, TypeScript, React 19)
+- **AI**: Vercel AI SDK (`ai`, `@ai-sdk/react`) + **AI Elements** UI components
+- **UI**: Tailwind CSS, Radix UI primitives, and local UI components in `src/components/ui`
+
+## Project structure
+
+```text
+src/
+  app/
+    page.tsx
+    chat/
+    api/chat/
+  components/
+    ai-elements/
+    chat/
+    ui/
+  lib/
+  hooks/
+```
 
 ## Getting started
 
-First, run the development server:
+- **Install dependencies**
+
+```bash
+pnpm install
+```
+
+- **Run the dev server**
 
 ```bash
 pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- Open `http://localhost:3000` in your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- (Optional) Configure the backend base URL in `.env.local`:
 
-## Learn more
+```bash
+API_BASE_URL=http://localhost:8080   # default if unset
+```
 
-To learn more, take a look at the following resources:
+## Docs
 
-- [kernl]() - ...
-- [AI SDK](https://ai-sdk.dev/docs/introduction) - ...
-- [AI SDK - Elements](https://ai-sdk.dev/elements) - ...
+- **kernl**: [TODO]
+- **Vercel AI SDK**: https://ai-sdk.dev/docs/introduction
+- **AI Elements**: https://ai-sdk.dev/elements
