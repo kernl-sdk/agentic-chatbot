@@ -41,7 +41,7 @@ type ToolUIPartApproval =
 
 type ConfirmationContextValue = {
   approval: ToolUIPartApproval;
-  state: ToolUIPart["state"];
+  state: ToolUIPart["state"] | "approval-requested" | "approval-responded" | "output-denied";
 };
 
 const ConfirmationContext = createContext<ConfirmationContextValue | null>(

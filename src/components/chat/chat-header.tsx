@@ -18,25 +18,22 @@ import {
   ModelSelectorName,
 } from "@/components/ai-elements/model-selector";
 
-const MODELS = [
-  { id: "gpt-4o", name: "GPT-4o", provider: "openai" },
-  {
-    id: "claude-3-5-sonnet-20241022",
-    name: "Claude 3.5 Sonnet",
-    provider: "anthropic",
-  },
+const AGENTS = [
+  { id: "jarvis", name: "Jarvis", provider: "openai" },
+  { id: "atlas", name: "Atlas", provider: "anthropic" },
 ];
 
 interface ChatHeaderProps {
   onNewChat: () => void;
-  initialModel?: string;
+  initialAgent?: string;
+  onAgentChange?: (agentId: string) => void;
 }
 
-export function ChatHeader({ onNewChat, initialModel }: ChatHeaderProps) {
-  const [selectedModel, setSelectedModel] = useState(
-    MODELS.find((m) => m.id === initialModel) || MODELS[0],
+export function ChatHeader({ onNewChat, initialAgent, onAgentChange }: ChatHeaderProps) {
+  const [selectedAgent, setSelectedAgent] = useState(
+    AGENTS.find((a) => a.id === initialAgent) || AGENTS[0],
   );
-  const [modelSelectorOpen, setModelSelectorOpen] = useState(false);
+  const [agentSelectorOpen, setAgentSelectorOpen] = useState(false);
 
   return (
     <div className="flex items-center justify-between">
@@ -51,33 +48,35 @@ export function ChatHeader({ onNewChat, initialModel }: ChatHeaderProps) {
       </Button>
 
       <div className="flex items-center gap-2">
-        {/* model selector */}
+        {/* agent selector */}
         <ModelSelector
-          open={modelSelectorOpen}
-          onOpenChange={setModelSelectorOpen}
+          open={agentSelectorOpen}
+          onOpenChange={setAgentSelectorOpen}
         >
           <ModelSelectorTrigger asChild>
-            <Button variant="ghost" size="sm" className="cursor-pointer">
-              <ChevronDown className="size-4 mr-2" />
-              <span className="text-sm">{selectedModel.name}</span>
+            <Button variant="ghost" size="sm" className="cursor-pointer gap-2">
+              <ModelSelectorLogo provider={selectedAgent.provider} />
+              <span className="text-sm">{selectedAgent.name}</span>
+              <ChevronDown className="size-4" />
             </Button>
           </ModelSelectorTrigger>
           <ModelSelectorContent>
-            <ModelSelectorInput placeholder="Search models..." />
+            <ModelSelectorInput placeholder="Search agents..." />
             <ModelSelectorList>
-              <ModelSelectorGroup heading="Available Models">
-                {MODELS.map((model) => (
+              <ModelSelectorGroup heading="Available Agents">
+                {AGENTS.map((agent) => (
                   <ModelSelectorItem
-                    key={model.id}
-                    value={model.id}
+                    key={agent.id}
+                    value={agent.id}
                     onSelect={() => {
-                      setSelectedModel(model);
-                      setModelSelectorOpen(false);
+                      setSelectedAgent(agent);
+                      setAgentSelectorOpen(false);
+                      onAgentChange?.(agent.id);
                     }}
                     className="cursor-pointer"
                   >
-                    <ModelSelectorLogo provider={model.provider} />
-                    <ModelSelectorName>{model.name}</ModelSelectorName>
+                    <ModelSelectorLogo provider={agent.provider} />
+                    <ModelSelectorName>{agent.name}</ModelSelectorName>
                   </ModelSelectorItem>
                 ))}
               </ModelSelectorGroup>

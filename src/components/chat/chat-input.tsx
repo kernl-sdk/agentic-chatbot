@@ -60,7 +60,7 @@ export function ChatInput({
       {/* textarea */}
       <PromptInputTextarea
         value={value}
-        placeholder="What would you like to know?"
+        placeholder="How can I help today?"
         onChange={(e) => onChange(e.currentTarget.value)}
         className="pl-4 pr-24"
       />

@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { env } from "@/lib/env";
 import { Chat } from "@/components/chat/chat";
 
-const DEFAULT_CHAT_MODEL = "gpt-4o";
+const DEFAULT_AGENT = "jarvis";
 
 interface ChatPageProps {
   params: Promise<{ id: string }>;
@@ -28,9 +28,9 @@ export default async function ChatPage({ params }: ChatPageProps) {
   //   <Chat
   //     id={session.id}
   //     initialMessages={messages}
-  //     initialChatModel={session.modelId ?? DEFAULT_CHAT_MODEL}
+  //     initialAgent={session.agentId ?? DEFAULT_AGENT}
   //   />
   // );
 
-  return <Chat id={id} key={id} />;
+  return <Chat id={id} key={id} initialAgent={DEFAULT_AGENT} />;
 }

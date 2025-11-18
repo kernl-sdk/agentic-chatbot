@@ -2,19 +2,38 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { DefaultChatTransport, type UIMessage } from "ai";
+import { toast } from "sonner";
+import {
+  DefaultChatTransport,
+  type UIMessage,
+  isToolUIPart,
+  isReasoningUIPart,
+} from "ai";
 import { useChat } from "@ai-sdk/react";
 
 /* components */
 import {
   Conversation,
   ConversationContent,
+  ConversationEmptyState,
   ConversationScrollButton,
 } from "@/components/ai-elements/conversation";
 import { Message, MessageContent } from "@/components/ai-elements/message";
 import type { PromptInputMessage } from "@/components/ai-elements/prompt-input";
 import { MessageResponse } from "@/components/ai-elements/message";
 import { Suggestions, Suggestion } from "@/components/ai-elements/suggestion";
+import {
+  Reasoning,
+  ReasoningTrigger,
+  ReasoningContent,
+} from "@/components/ai-elements/reasoning";
+import {
+  Tool,
+  ToolHeader,
+  ToolContent,
+  ToolInput,
+  ToolOutput,
+} from "@/components/ai-elements/tool";
 import { ChatInput } from "@/components/chat/chat-input";
 import { ChatHeader } from "@/components/chat/chat-header";
 
@@ -32,24 +51,31 @@ if (!API_BASE_URL) {
 export interface ChatProps {
   id?: string;
   initialMessages?: UIMessage[];
-  initialChatModel?: string;
+  initialAgent?: string;
 }
 
 export function Chat({
   id,
   initialMessages = [],
-  initialChatModel,
+  initialAgent = "jarvis",
 }: ChatProps) {
   const router = useRouter();
   const [input, setInput] = useState("");
+  const [agent, setAgent] = useState(initialAgent);
 
-  const { messages, sendMessage, status } = useChat({
+  const { messages, sendMessage, status, error, stop } = useChat({
     id,
     messages: initialMessages,
     transport: new DefaultChatTransport({
-      api: `${API_BASE_URL}/v1/agents/jarvis/stream`,
-      prepareSendMessagesRequest: ({ id, messages }) => {
+      prepareSendMessagesRequest: ({ id, messages, body }) => {
+        // NOTE: this is unfortunately the only way that you can send values through this; `body` or `metadata`
+        const agentId = body?.agentId as string | undefined;
+        if (!agentId) {
+          throw new Error("agentId missing on request body");
+        }
+
         return {
+          api: `${API_BASE_URL}/v1/agents/${agentId}/stream`,
           body: {
             tid: id,
             message: messages[messages.length - 1],
@@ -57,6 +83,11 @@ export function Chat({
         };
       },
     }),
+    onError: (error) => {
+      toast.error("Failed to send message", {
+        description: error.message || "An error occurred while communicating with the agent.",
+      });
+    },
   });
 
   const handleSuggestionClick = (suggestion: string) => {
@@ -75,7 +106,14 @@ export function Chat({
         window.history.replaceState(null, "", `/chat/${id}`);
       }
 
-      sendMessage({ text: message.text });
+      sendMessage(
+        { text: message.text },
+        {
+          body: {
+            agentId: agent,
+          },
+        },
+      );
       setInput("");
     }
   };
@@ -87,67 +125,117 @@ export function Chat({
         <div className="mx-auto w-full">
           <ChatHeader
             onNewChat={handleNewChat}
-            initialModel={initialChatModel}
+            initialAgent={agent}
+            onAgentChange={setAgent}
           />
         </div>
       </div>
 
       {/* main content with top padding for fixed header */}
       <div className="h-full pt-[72px] px-6 pb-6">
-        {messages.length === 0 ? (
-          // greeting mode: centered when no messages
-          <div className="flex h-full items-center justify-center max-w-4xl mx-auto">
-            <div className="w-full max-w-2xl space-y-4">
-              {/* input */}
-              <ChatInput
-                value={input}
-                onChange={setInput}
-                onSubmit={handleSubmit}
-                status={status}
-              />
-
-              {/* prompt templates */}
-              <div className="space-y-2">
-                <Suggestions>
-                  {PROMPT_TEMPLATES.map((prompt) => (
-                    <Suggestion
-                      key={prompt}
-                      suggestion={prompt}
-                      onClick={handleSuggestionClick}
+        <div className="flex flex-col h-full max-w-4xl mx-auto">
+          <Conversation className="flex-1">
+            <ConversationContent
+              className={messages.length === 0 ? "h-full" : ""}
+            >
+              {messages.length === 0 ? (
+                // empty state: centered input + suggestions
+                <ConversationEmptyState>
+                  <div className="w-full max-w-2xl space-y-4">
+                    <ChatInput
+                      value={input}
+                      onChange={setInput}
+                      onSubmit={handleSubmit}
+                      status={status}
                     />
-                  ))}
-                </Suggestions>
-              </div>
-            </div>
-          </div>
-        ) : (
-          // full chat mode
-          <div className="flex flex-col h-full max-w-4xl mx-auto">
-            <Conversation>
-              <ConversationContent>
-                {messages.map((message) => (
-                  <Message from={message.role} key={message.id}>
+                    <Suggestions>
+                      {PROMPT_TEMPLATES.map((prompt) => (
+                        <Suggestion
+                          key={prompt}
+                          suggestion={prompt}
+                          onClick={handleSuggestionClick}
+                        />
+                      ))}
+                    </Suggestions>
+                  </div>
+                </ConversationEmptyState>
+              ) : (
+                // messages exist: show conversation
+                messages.map((m) => (
+                  <Message from={m.role} key={m.id}>
                     <MessageContent>
-                      {message.parts.map((part, i) => {
-                        switch (part.type) {
-                          case "text":
-                            return (
-                              <MessageResponse key={`${message.id}-${i}`}>
-                                {part.text}
-                              </MessageResponse>
-                            );
-                          default:
-                            return null;
+                      {m.parts.map((part, i) => {
+                        const isLastPart = i === m.parts.length - 1;
+                        const isLastMessage =
+                          m.id === messages[messages.length - 1]?.id;
+                        const isStreaming =
+                          status === "streaming" && isLastPart && isLastMessage;
+
+                        // Handle reasoning parts
+                        if (isReasoningUIPart(part)) {
+                          return (
+                            <Reasoning
+                              key={`${m.id}-${i}`}
+                              className="w-full"
+                              isStreaming={isStreaming}
+                            >
+                              <ReasoningTrigger />
+                              <ReasoningContent>{part.text}</ReasoningContent>
+                            </Reasoning>
+                          );
                         }
+
+                        // Handle tool parts
+                        if (isToolUIPart(part)) {
+                          const toolTitle =
+                            "toolName" in part
+                              ? String(part.toolName)
+                              : part.toolCallId;
+
+                          return (
+                            <Tool key={`${m.id}-${i}`}>
+                              <ToolHeader
+                                title={toolTitle}
+                                type={part.type}
+                                state={part.state}
+                              />
+                              <ToolContent>
+                                {part.input !== undefined && (
+                                  <ToolInput input={part.input as object} />
+                                )}
+                                {(part.output !== undefined ||
+                                  part.errorText !== undefined) && (
+                                  <ToolOutput
+                                    output={part.output as object}
+                                    errorText={part.errorText}
+                                  />
+                                )}
+                              </ToolContent>
+                            </Tool>
+                          );
+                        }
+
+                        // Handle text parts
+                        if (part.type === "text") {
+                          return (
+                            <MessageResponse key={`${m.id}-${i}`}>
+                              {part.text}
+                            </MessageResponse>
+                          );
+                        }
+
+                        return null;
                       })}
                     </MessageContent>
                   </Message>
-                ))}
-              </ConversationContent>
-              <ConversationScrollButton />
-            </Conversation>
+                ))
+              )}
+            </ConversationContent>
+            <ConversationScrollButton />
+          </Conversation>
 
-            {/* input */}
+          {/* input at bottom once messages exist */}
+          {messages.length > 0 && (
             <div className="mt-4 w-full max-w-2xl mx-auto">
               <ChatInput
                 value={input}
@@ -156,8 +244,8 @@ export function Chat({
                 status={status}
               />
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
