@@ -14,8 +14,12 @@ export default async function ChatPage({ params }: ChatPageProps) {
   const { id } = await params;
 
   let thread;
+  let history;
   try {
-    thread = await kernl.threads.get(id);
+    [thread, { history }] = await Promise.all([
+      kernl.threads.get(id),
+      kernl.threads.history(id),
+    ]);
   } catch (error) {
     if (error instanceof KernlApiError && error.status === 404) {
       notFound();
@@ -26,7 +30,7 @@ export default async function ChatPage({ params }: ChatPageProps) {
   return (
     <Chat
       id={thread.tid}
-      initialMessages={thread.history ?? []}
+      initialMessages={history ?? []}
       initialAgent={thread.agentId ?? DEFAULT_AGENT}
     />
   );
