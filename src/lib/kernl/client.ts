@@ -1,7 +1,8 @@
 import {
   KernlApiError,
   type ThreadResource,
-  type ThreadHistoryResponse,
+  type ThreadMessagesResponse,
+  type ThreadCreateParams,
   type ListThreadsParams,
   type ListThreadsResponse,
   type AgentResource,
@@ -41,6 +42,19 @@ export class KernlClient {
    */
   threads = {
     /**
+     * Create a new thread
+     *
+     * @example
+     * const thread = await kernl.threads.create({ agentId: "jarvis" });
+     */
+    create: async (params: ThreadCreateParams): Promise<ThreadResource> => {
+      return this.fetch<ThreadResource>("/threads", {
+        method: "POST",
+        body: JSON.stringify(params),
+      });
+    },
+
+    /**
      * Get a single thread by ID
      *
      * @example
@@ -51,13 +65,13 @@ export class KernlClient {
     },
 
     /**
-     * Get thread message history
+     * Get thread messages
      *
      * @example
-     * const { history } = await kernl.threads.history("thread-123");
+     * const { messages } = await kernl.threads.messages("thread-123");
      */
-    history: async (tid: string): Promise<ThreadHistoryResponse> => {
-      return this.fetch<ThreadHistoryResponse>(`/threads/${tid}/history`);
+    messages: async (tid: string): Promise<ThreadMessagesResponse> => {
+      return this.fetch<ThreadMessagesResponse>(`/threads/${tid}/messages`);
     },
 
     /**

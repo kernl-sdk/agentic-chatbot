@@ -1,6 +1,7 @@
 import { Mic, Plus } from "lucide-react";
 import type { ChatStatus } from "ai";
 
+/* components */
 import {
   PromptInput,
   PromptInputProvider,

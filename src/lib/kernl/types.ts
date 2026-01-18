@@ -19,8 +19,15 @@ export interface ThreadResource {
   parentTaskId: string | null;
 }
 
-export interface ThreadHistoryResponse {
-  history: UIMessage[];
+export interface ThreadMessagesResponse {
+  messages: UIMessage[];
+}
+
+export interface ThreadCreateParams {
+  tid?: string;
+  agentId: string;
+  title?: string;
+  context?: Record<string, unknown>;
 }
 
 export interface ListThreadsParams {

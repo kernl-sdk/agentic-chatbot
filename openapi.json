@@ -26,10 +26,7 @@
                       "type": "string"
                     }
                   },
-                  "required": [
-                    "healthy",
-                    "version"
-                  ]
+                  "required": ["healthy", "version"]
                 }
               }
             }
@@ -358,9 +355,10 @@
         }
       }
     },
-    "/threads/{tid}/history": {
+    "/threads/{tid}/messages": {
       "get": {
-        "operationId": "threads.history",
+        "operationId": "threads.messages.list",
+        "x-note": "AI SDK adapter endpoint. Returns UIMessages. The future kernl-native equivalent will be GET /threads/{tid}/events.",
         "parameters": [
           {
             "in": "path",
@@ -371,21 +369,73 @@
             "required": true
           }
         ],
-        "summary": "Get thread history",
-        "description": "Retrieve message history for a thread as UIMessages.",
+        "summary": "Get thread messages",
+        "description": "Retrieve messages for a thread as UIMessages.",
         "responses": {
           "200": {
-            "description": "Thread history",
+            "description": "Thread messages",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ThreadHistory"
+                  "$ref": "#/components/schemas/AISDKMessageList"
                 }
               }
             }
           },
           "404": {
             "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/threads/{tid}/stream": {
+      "post": {
+        "operationId": "threads.stream",
+        "x-note": "AI SDK adapter endpoint. Accepts UIMessage, streams UIMessage responses. The future kernl-native equivalent will be POST /threads/{tid}/events.",
+        "summary": "Stream thread execution",
+        "description": "Send a message to a thread and stream the agent response. The thread must exist and determines which agent handles the request.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "tid",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "description": "Thread ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AISDKStreamRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "SSE stream of UI messages",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string",
+                  "description": "Server-Sent Events stream"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Thread not found",
             "content": {
               "application/json": {
                 "schema": {
@@ -454,9 +504,7 @@
                       "format": "uri"
                     }
                   },
-                  "required": [
-                    "url"
-                  ]
+                  "required": ["url"]
                 }
               }
             }
@@ -635,9 +683,7 @@
                       "type": "string"
                     }
                   },
-                  "required": [
-                    "authorizationUrl"
-                  ]
+                  "required": ["authorizationUrl"]
                 }
               }
             }
@@ -760,9 +806,7 @@
                     "type": "string"
                   }
                 },
-                "required": [
-                  "code"
-                ]
+                "required": ["code"]
               }
             }
           }
@@ -980,10 +1024,7 @@
                 "properties": {
                   "provider": {
                     "type": "string",
-                    "enum": [
-                      "openai",
-                      "xai"
-                    ]
+                    "enum": ["openai", "xai"]
                   },
                   "modelId": {
                     "type": "string"
@@ -992,10 +1033,7 @@
                     "type": "string"
                   }
                 },
-                "required": [
-                  "provider",
-                  "modelId"
-                ]
+                "required": ["provider", "modelId"]
               }
             }
           }
@@ -1274,11 +1312,7 @@
             "description": "List of toolkit IDs"
           }
         },
-        "required": [
-          "id",
-          "name",
-          "model"
-        ]
+        "required": ["id", "name", "model"]
       },
       "Thread": {
         "type": "object",
@@ -1337,12 +1371,7 @@
       },
       "ThreadState": {
         "type": "string",
-        "enum": [
-          "idle",
-          "running",
-          "stopped",
-          "error"
-        ],
+        "enum": ["idle", "running", "stopped", "error"],
         "description": "Thread lifecycle state"
       },
       "ThreadCreate": {
@@ -1365,9 +1394,7 @@
             "additionalProperties": true
           }
         },
-        "required": [
-          "agentId"
-        ]
+        "required": ["agentId"]
       },
       "ThreadUpdate": {
         "type": "object",
@@ -1382,20 +1409,19 @@
           }
         }
       },
-      "ThreadHistory": {
+      "AISDKMessageList": {
         "type": "object",
+        "x-note": "AI SDK adapter type. Will be replaced by kernl-native event types in the future.",
         "properties": {
-          "history": {
+          "messages": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/UIMessage"
             },
-            "description": "Message history as UIMessages"
+            "description": "Messages as UIMessages"
           }
         },
-        "required": [
-          "history"
-        ]
+        "required": ["messages"]
       },
       "UIMessage": {
         "type": "object",
@@ -1405,10 +1431,7 @@
           },
           "role": {
             "type": "string",
-            "enum": [
-              "user",
-              "assistant"
-            ]
+            "enum": ["user", "assistant"]
           },
           "parts": {
             "type": "array",
@@ -1418,11 +1441,7 @@
             "description": "Message parts (text, tool calls, etc.)"
           }
         },
-        "required": [
-          "id",
-          "role",
-          "parts"
-        ]
+        "required": ["id", "role", "parts"]
       },
       "Tool": {
         "type": "object",
@@ -1443,11 +1462,7 @@
             "description": "JSON Schema for tool parameters"
           }
         },
-        "required": [
-          "id",
-          "name",
-          "parameters"
-        ]
+        "required": ["id", "name", "parameters"]
       },
       "Toolkit": {
         "type": "object",
@@ -1471,11 +1486,7 @@
             "description": "Tool IDs in this toolkit"
           }
         },
-        "required": [
-          "id",
-          "name",
-          "tools"
-        ]
+        "required": ["id", "name", "tools"]
       },
       "Provider": {
         "type": "object",
@@ -1500,10 +1511,7 @@
             "properties": {
               "type": {
                 "type": "string",
-                "enum": [
-                  "api_key",
-                  "oauth"
-                ]
+                "enum": ["api_key", "oauth"]
               },
               "configured": {
                 "type": "boolean"
@@ -1511,10 +1519,7 @@
             }
           }
         },
-        "required": [
-          "id",
-          "name"
-        ]
+        "required": ["id", "name"]
       },
       "McpServer": {
         "type": "object",
@@ -1525,11 +1530,7 @@
           },
           "status": {
             "type": "string",
-            "enum": [
-              "connected",
-              "disconnected",
-              "error"
-            ]
+            "enum": ["connected", "disconnected", "error"]
           },
           "tools": {
             "type": "array",
@@ -1544,10 +1545,7 @@
             }
           }
         },
-        "required": [
-          "name",
-          "status"
-        ]
+        "required": ["name", "status"]
       },
       "McpServerCreate": {
         "type": "object",
@@ -1560,10 +1558,7 @@
             "properties": {
               "type": {
                 "type": "string",
-                "enum": [
-                  "stdio",
-                  "http"
-                ]
+                "enum": ["stdio", "http"]
               },
               "command": {
                 "type": "string",
@@ -1574,25 +1569,17 @@
                 "description": "For http transport"
               }
             },
-            "required": [
-              "type"
-            ]
+            "required": ["type"]
           }
         },
-        "required": [
-          "name",
-          "transport"
-        ]
+        "required": ["name", "transport"]
       },
       "RealtimeCredential": {
         "type": "object",
         "properties": {
           "kind": {
             "type": "string",
-            "enum": [
-              "token",
-              "url"
-            ]
+            "enum": ["token", "url"]
           },
           "token": {
             "type": "string",
@@ -1607,10 +1594,7 @@
             "format": "date-time"
           }
         },
-        "required": [
-          "kind",
-          "expiresAt"
-        ]
+        "required": ["kind", "expiresAt"]
       },
       "ModelInfo": {
         "type": "object",
@@ -1624,10 +1608,7 @@
             "description": "Model ID"
           }
         },
-        "required": [
-          "provider",
-          "modelId"
-        ]
+        "required": ["provider", "modelId"]
       },
       "Error": {
         "type": "object",
@@ -1642,10 +1623,7 @@
                 "type": "string"
               }
             },
-            "required": [
-              "code",
-              "message"
-            ]
+            "required": ["code", "message"]
           }
         }
       },
@@ -1664,9 +1642,7 @@
             "description": "Cursor for next page"
           }
         },
-        "required": [
-          "threads"
-        ]
+        "required": ["threads"]
       },
       "StreamRequest": {
         "type": "object",
@@ -1688,10 +1664,7 @@
             "description": "Agent ID for auto title generation"
           }
         },
-        "required": [
-          "tid",
-          "message"
-        ]
+        "required": ["tid", "message"]
       },
       "PartUpdate": {
         "type": "object",
@@ -1711,9 +1684,7 @@
             "description": "OAuth redirect URI"
           }
         },
-        "required": [
-          "redirectUri"
-        ]
+        "required": ["redirectUri"]
       },
       "OAuthCallback": {
         "type": "object",
@@ -1727,9 +1698,7 @@
             "description": "State parameter"
           }
         },
-        "required": [
-          "code"
-        ]
+        "required": ["code"]
       },
       "Success": {
         "type": "object",
@@ -1739,9 +1708,19 @@
             "const": true
           }
         },
-        "required": [
-          "success"
-        ]
+        "required": ["success"]
+      },
+      "AISDKStreamRequest": {
+        "type": "object",
+        "x-note": "AI SDK adapter type. Will be replaced by kernl-native event types in the future.",
+        "description": "Request body for AI SDK streaming endpoints.",
+        "properties": {
+          "message": {
+            "$ref": "#/components/schemas/UIMessage",
+            "description": "UIMessage to send"
+          }
+        },
+        "required": ["message"]
       }
     }
   }

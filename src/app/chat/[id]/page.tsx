@@ -14,11 +14,11 @@ export default async function ChatPage({ params }: ChatPageProps) {
   const { id } = await params;
 
   let thread;
-  let history;
+  let messages;
   try {
-    [thread, { history }] = await Promise.all([
+    [thread, { messages }] = await Promise.all([
       kernl.threads.get(id),
-      kernl.threads.history(id),
+      kernl.threads.messages(id),
     ]);
   } catch (error) {
     if (error instanceof KernlApiError && error.status === 404) {
@@ -30,7 +30,7 @@ export default async function ChatPage({ params }: ChatPageProps) {
   return (
     <Chat
       id={thread.tid}
-      initialMessages={history ?? []}
+      initialMessages={messages ?? []}
       initialAgent={thread.agentId ?? DEFAULT_AGENT}
     />
   );

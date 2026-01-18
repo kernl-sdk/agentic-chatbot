@@ -11,6 +11,7 @@ import { ArrowDown } from "lucide-react";
 
 import { kernl } from "@/lib/kernl";
 
+/* components */
 import { ConversationEmptyState } from "@/components/ai-elements/conversation";
 import {
   Message,
@@ -24,6 +25,7 @@ import {
   ToolInput,
   ToolOutput,
 } from "@/components/ai-elements/tool";
+import { EditTool } from "@/components/tools";
 import {
   AttachmentPill,
   type PromptInputMessage,
@@ -86,15 +88,18 @@ export function Chat({
   const [localSessionId] = useState(() => `local_${nanoid()}`);
   const chatSessionId = isNewChat ? localSessionId : threadId;
 
-  // track the tid we'll send to server
-  // - STATE A: null initially, set on first send
-  // - STATE B/C: always threadId
+  // refs for the transport closure to read current values
   const tidRef = useRef<string | null>(isNewChat ? null : threadId);
+  const agentIdRef = useRef(agentId);
 
-  // sync tidRef when threadId changes (e.g., navigation to existing thread)
+  // sync refs when values change
   useEffect(() => {
     tidRef.current = threadId ?? null;
   }, [threadId]);
+
+  useEffect(() => {
+    agentIdRef.current = agentId;
+  }, [agentId]);
 
   const { data: agentsData } = useSWR("agents", () => kernl.agents.list());
   const agent = agentsData?.agents.find((a) => a.id === agentId);
@@ -104,11 +109,11 @@ export function Chat({
     messages: initialMessages,
     transport: new DefaultChatTransport({
       prepareSendMessagesRequest: ({ messages }) => ({
-        api: `${API_BASE_URL}/agents/${agentId}/stream`,
+        api: `${API_BASE_URL}/agents/${agentIdRef.current}/stream`,
         body: {
           tid: tidRef.current,
           message: messages[messages.length - 1],
-          title: "$auto", // ignored after first message anyways
+          title: "$auto",
           titlerAgentId: "titler",
         },
       }),
@@ -154,16 +159,19 @@ export function Chat({
     [isNewChat, sendMessage],
   );
 
-  // transition to STATE A: Clean reset via navigation
+  // transition to STATE A: Clean reset
   const handleNewChat = useCallback(() => {
+    tidRef.current = null;
+    setMessages([]);
+    setInput("");
     router.push("/");
-    router.refresh();
-  }, [router]);
+  }, [router, setMessages]);
 
-  // handle agent change - only works for new chats
+  // handle agent change - only works for new chats (before first message sent)
   const handleAgentChange = useCallback(
     (newAgentId: string) => {
-      if (!threadId) {
+      // Can only change agent if no thread exists yet (prop or created)
+      if (!threadId && tidRef.current === null) {
         setSelectedAgentId(newAgentId);
       }
     },
@@ -180,11 +188,15 @@ export function Chat({
   // determine if we should show the greeting (STATE A with no messages)
   const showGreeting = messages.length === 0;
 
+  // Agent is locked once a thread exists (either from prop or created on first message)
+  const isAgentLocked = Boolean(threadId) || messages.length > 0;
+
   return (
     <div className="flex h-full flex-col">
       <ChatHeader
         agentId={agentId}
         agents={agentsData?.agents}
+        isAgentLocked={isAgentLocked}
         onAgentChange={handleAgentChange}
         onNewChat={handleNewChat}
         onOpenSettings={() => setAgentDrawerOpen(true)}
@@ -238,17 +250,22 @@ export function Chat({
 
                       if (isToolUIPart(part)) {
                         // Extract tool name from toolName prop, or from type (e.g. "tool-get_thread")
-                        const toolTitle =
+                        const toolName =
                           "toolName" in part
                             ? String(part.toolName)
                             : part.type.startsWith("tool-")
                               ? part.type.replace(/^tool-/, "")
                               : part.toolCallId;
 
+                        // Route edit tool to specialized component
+                        if (toolName === "fs_edit") {
+                          return <EditTool key={`${m.id}-${i}`} part={part} />;
+                        }
+
                         return (
                           <Tool key={`${m.id}-${i}`}>
                             <ToolHeader
-                              title={toolTitle}
+                              title={toolName}
                               type={part.type}
                               state={part.state}
                             />
