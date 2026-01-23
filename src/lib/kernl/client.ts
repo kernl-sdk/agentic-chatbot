@@ -97,7 +97,6 @@ export class KernlClient {
       const endpoint = query ? `/threads?${query}` : "/threads";
 
       const response = await this.fetch<ListThreadsResponse>(endpoint);
-      console.log("[KernlClient] /threads response:", response);
       return response.threads;
     },
   };

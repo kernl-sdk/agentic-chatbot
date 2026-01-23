@@ -102,11 +102,6 @@ export function HistorySidebar({
       updatedAt: new Date(t.updatedAt),
     }));
 
-  console.log(
-    "[HistorySidebar] threads:",
-    threads.map((t) => t.tid),
-  );
-
   const hasMore = data && data[data.length - 1]?.length === PAGE_SIZE;
   const isLoadingMore =
     size > 0 && data && typeof data[size - 1] === "undefined";
